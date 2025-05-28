@@ -1,0 +1,72 @@
+import 'package:flutter/material.dart';
+import '../services/socket_service.dart';
+
+class ChatScreen extends StatefulWidget {
+  @override
+  State<ChatScreen> createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends State<ChatScreen> {
+  final socketService = SocketService();
+  final roomId = 'room_id_example';
+  final sender = 'username_example';
+  List<Map<String, dynamic>> messages = [];
+  final TextEditingController controller = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    socketService.connect('your_jwt_token_here');
+    socketService.joinRoom(roomId);
+    socketService.onMessage((data) {
+      setState(() {
+        messages.add({
+          'sender': data['sender'],
+          'text': data['text'],
+          'time': data['time'],
+        });
+      });
+    });
+  }
+
+  void sendMessage() {
+    if (controller.text.isNotEmpty) {
+      socketService.sendMessage(roomId, sender, controller.text);
+      controller.clear();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Chat')),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView(
+              children: messages
+                  .map((msg) => ListTile(
+                        title: Text(msg['text']),
+                        subtitle: Text(msg['sender']),
+                      ))
+                  .toList(),
+            ),
+          ),
+          Row(
+            children: [
+              Expanded(
+                  child: TextField(
+                controller: controller,
+                decoration: InputDecoration(hintText: 'Type a message'),
+              )),
+              IconButton(
+                  icon: Icon(Icons.send),
+                  onPressed: sendMessage,
+              ),
+            ],
+          )
+        ],
+      ),
+    );
+  }
+}
